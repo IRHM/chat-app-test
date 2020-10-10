@@ -4,7 +4,7 @@
     {
       "label": "Build and run",
       "type": "shell",
-      "command": "go build -o bin/server server/main.go && ./bin/server",
+      "command": "go run server/*",
       "group": {
         "kind": "build",
         "isDefault": true
