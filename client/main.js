@@ -1,4 +1,4 @@
-var webSocket = new WebSocket("ws://192.168.0.11:8000/");
+var webSocket = new WebSocket("wss://192.168.0.11:8000/");
 
 document.getElementById("messageForm").addEventListener("submit", (e) => {
   e.preventDefault();
