@@ -1,4 +1,4 @@
-var webSocket = new WebSocket("wss://192.168.0.11:8000/");
+const webSocket = new WebSocket("wss://192.168.0.11:8000/");
 
 document.getElementById("messageForm").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -15,4 +15,6 @@ webSocket.addEventListener('message', function(e) {
   document.getElementById("messages").innerHTML += `
     <strong>${msg.username}:</strong> ${msg.message} <br>
   `;
+
+  dummy.scrollIntoView();
 });
