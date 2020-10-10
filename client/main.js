@@ -3,14 +3,10 @@ var webSocket = new WebSocket("ws://192.168.0.11:8000/");
 document.getElementById("messageForm").addEventListener("submit", (e) => {
   e.preventDefault();
 
-  let msg = {
+  webSocket.send(JSON.stringify({
     username: document.getElementById('usernameInput').value,
     message: document.getElementById('messageInput').value
-  };
-
-  webSocket.send(JSON.stringify(msg));
-
-  console.log("hi");
+  }));
 });
 
 webSocket.addEventListener('message', function(e) {
