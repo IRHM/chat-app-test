@@ -8,20 +8,32 @@ function notice(msg) {
   `;
 }
 
+/**
+ * Create websocket connection
+ */
 var webSocket = new WebSocket("wss://192.168.0.11:8000/");
 
-webSocket.addEventListener('open', (e) => {
+/**
+ * Notify user if websocket connection is opened
+ */
+webSocket.addEventListener('open', () => {
   if (WebSocket.OPEN) {  
     notice("Connected");
   }
 });
 
-webSocket.addEventListener('error', (e) => {
+/**
+ * Notify user if websocket connection couldn't open
+ */
+webSocket.addEventListener('error', () => {
   if (WebSocket.CLOSED) {
     notice("Couldn't connect to server");
   }
 });
 
+/**
+ * Display message to user once they recieve it
+ */
 webSocket.addEventListener('message', (e) => {
   var msg = JSON.parse(e.data);
 
@@ -30,6 +42,9 @@ webSocket.addEventListener('message', (e) => {
   `;
 });
 
+/**
+ * Catch when user tries to submit form, then use input data to send a message to server
+ */
 document.getElementById("messageForm").addEventListener("submit", (e) => {
   e.preventDefault();
 
