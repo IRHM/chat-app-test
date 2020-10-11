@@ -10,6 +10,6 @@ document.getElementById("messageForm").addEventListener("submit", function (e) {
 });
 webSocket.addEventListener('message', function (e) {
   var msg = JSON.parse(e.data);
-  document.getElementById("messages").innerHTML += "\n    <strong>".concat(msg.username, ":</strong> ").concat(msg.message, " <br>\n  ");
-  dummy.scrollIntoView();
+  document.getElementById("messages").insertAdjacentHTML('beforebegin', "<div id=\"message\"><strong>".concat(msg.username, ":</strong> ").concat(msg.message, " </div><br>"));
+  scrollBtm.scrollIntoView();
 });

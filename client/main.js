@@ -1,3 +1,5 @@
+"use strict";
+
 const webSocket = new WebSocket("wss://192.168.0.11:8000/");
 
 document.getElementById("messageForm").addEventListener("submit", (e) => {
@@ -12,9 +14,7 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
 webSocket.addEventListener('message', function(e) {
   var msg = JSON.parse(e.data);
 
-  document.getElementById("messages").innerHTML += `
-    <strong>${msg.username}:</strong> ${msg.message} <br>
-  `;
+  document.getElementById("messages").insertAdjacentHTML('beforebegin', `<div id="message"><strong>${msg.username}:</strong> ${msg.message} </div><br>`);
 
-  dummy.scrollIntoView();
+  scrollBtm.scrollIntoView();
 });
