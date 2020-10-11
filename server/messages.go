@@ -68,7 +68,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if req.Operation == 0 {
+		switch req.Operation {
+		case 0:
 			// Send message to broadcast channel
 			broadcast <- req.Message
 		}
