@@ -34,7 +34,7 @@ func startMessagesWebSocket() {
 	// Start the server on localhost port 8000 and log any errors
 	log.Println("Server started on port 8000")
 
-	err := http.ListenAndServeTLS(":8000", "/home/sbondo/Repos/chat-app-test/server/.crt/cert.pem", "/home/sbondo/Repos/chat-app-test/server/.crt/key.pem", nil)
+	err := http.ListenAndServeTLS(":8000", "server/.crt/cert.pem", "server/.crt/key.pem", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
