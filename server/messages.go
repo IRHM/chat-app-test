@@ -20,9 +20,9 @@ type Message struct {
 	Body     string `json:"body"`
 }
 
-var clients = make(map[*websocket.Conn]bool) // connected clients
-var broadcast = make(chan Message)           // broadcast channel
-var upgrader = websocket.Upgrader{}
+var clients = make(map[*websocket.Conn]bool) // Connected clients
+var broadcast = make(chan Message)           // Broadcast channel
+var upgrader = websocket.Upgrader{}          // Connection upgrader
 
 func startMessagesWebSocket() {
 	// Configure websocket route
@@ -31,9 +31,8 @@ func startMessagesWebSocket() {
 	// Start listening for incoming chat messages
 	go handleMessages()
 
-	// Start the server on localhost port 8000 and log any errors
-	log.Println("Server started on port 8000")
-
+	// Start the server
+	log.Println("Started websocket server on port 8000")
 	err := http.ListenAndServeTLS(":8000", "server/.crt/cert.pem", "server/.crt/key.pem", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
@@ -54,7 +53,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// Close the connection when the function returns
 	defer ws.Close()
 
-	// Register our new client
+	// Register new client
 	clients[ws] = true
 
 	for {
