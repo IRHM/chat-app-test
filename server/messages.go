@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// OperationType - Type of operation being performed
-type OperationType struct {
+// Operation - Type of operation being performed
+type Operation struct {
 	Operation int `json:"op"`
 
 	Message `json:"message"`
@@ -21,7 +21,7 @@ type Message struct {
 }
 
 var clients = make(map[*websocket.Conn]bool) // Connected clients
-var broadcast = make(chan Message)           // Broadcast channel
+var broadcast = make(chan Operation)         // Broadcast channel
 var upgrader = websocket.Upgrader{}          // Connection upgrader
 
 func startMessagesWebSocket() {
@@ -57,7 +57,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	clients[ws] = true
 
 	for {
-		var req OperationType
+		var req Operation
 
 		// Read in a new message as JSON and map it to a Message object
 		err := ws.ReadJSON(&req)
@@ -70,7 +70,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		switch req.Operation {
 		case 0:
 			// Send message to broadcast channel
-			broadcast <- req.Message
+			broadcast <- req
 		}
 	}
 }

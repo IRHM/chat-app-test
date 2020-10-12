@@ -37,9 +37,13 @@ webSocket.addEventListener('error', () => {
 webSocket.addEventListener('message', (e) => {
   var msg = JSON.parse(e.data);
 
-  document.getElementById("messages").innerHTML += `
-    <strong>${msg.username}:</strong> ${msg.body} <br>
-  `;
+  switch (msg.op) {
+    case 0:
+      document.getElementById("messages").innerHTML += `
+        <strong>${msg.message.username}:</strong> ${msg.message.body} <br>
+      `;
+      break;
+  }
 });
 
 /**
@@ -56,4 +60,3 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
     }
   }));
 });
-
