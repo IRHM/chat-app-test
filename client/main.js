@@ -13,6 +13,11 @@ function notice(msg) {
  */
 var webSocket = new WebSocket("wss://192.168.0.11:8000/");
 
+const Operations = Object.freeze({
+  "message": 0,
+  "clients": 1
+})
+
 /**
  * Notify user if websocket connection is opened
  */
@@ -38,12 +43,12 @@ webSocket.addEventListener('message', (e) => {
   var msg = JSON.parse(e.data);
 
   switch (msg.op) {
-    case 0:
+    case Operations.message:
       document.getElementById("messages").innerHTML += `
         <strong>${msg.message.username}:</strong> ${msg.message.body} <br>
       `;
       break;
-    case 1:
+    case Operations.clients:
       document.getElementById("usersOnline").innerHTML = `
         Users online: ${msg.clients.amount}
       `;
@@ -57,7 +62,7 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
   e.preventDefault();
 
   webSocket.send(JSON.stringify({
-    op: 0,
+    op: Operations.message,
     message: {
       username: document.getElementById('usernameInput').value,
       body: document.getElementById('messageInput').value

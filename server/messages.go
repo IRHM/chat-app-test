@@ -7,6 +7,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	MessageOperation = 0
+	ClientsOperation = 1
+)
+
 // Operation - Type of operation being performed
 type Operation struct {
 	Operation int `json:"op"`
@@ -75,7 +80,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 		// Handle different types of requests from client
 		switch req.Operation {
-		case 0:
+		case MessageOperation:
 			// Send message to broadcast channel
 			broadcast <- req
 		}
@@ -107,7 +112,7 @@ func manageClient(add bool, ws *websocket.Conn) {
 	}
 
 	broadcast <- Operation{
-		Operation: 1,
+		Operation: ClientsOperation,
 		Clients: &Clients{
 			Amount: len(clients),
 		},
