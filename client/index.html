@@ -3,19 +3,18 @@
   <head>
     <meta charset="UTF-8">
     <title>Chat App</title>
-    <link rel="stylesheet" href="dist/main.css">
+    <link rel="stylesheet" href="styles/main.min.css">
     <script src="main.js" defer></script>
   </head>
   <body>
-    Username: <input type="text" value="anon" id="usernameInput">
-    <br> <br>
+    <div class="messagesContainer">
+      <input type="text" value="anon" id="usernameInput" placeholder="Username">
 
-    <div id="messages"></div>
+      <div id="messages"></div>
 
-    <div id="scrollBtm"></div>
-
-    <form id="messageForm">
-      <input type="text" id="messageInput">
-    </form>
+      <form id="messageForm">
+        <input type="text" id="messageInput" placeholder="Type a message...">
+      </form>
+    </div>
   </body>
 </html>

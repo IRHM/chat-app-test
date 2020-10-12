@@ -13,8 +13,8 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
 
 webSocket.addEventListener('message', function(e) {
   var msg = JSON.parse(e.data);
+  let msgEl = document.getElementById("messages");
 
-  document.getElementById("messages").insertAdjacentHTML('beforebegin', `<div id="message"><strong>${msg.username}:</strong> ${msg.message} </div><br>`);
-
-  scrollBtm.scrollIntoView();
+  msgEl.insertAdjacentHTML('beforeend', `<div id="message"><strong>${msg.username}:</strong> ${msg.message} </div><br>`);
+  msgEl.scrollTop = msgEl.scrollHeight;
 });
