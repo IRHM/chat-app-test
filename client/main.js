@@ -1,22 +1,30 @@
 /**
+ * Global Vars
+ */
+
+// Elements
+const messagesContainer = document.getElementById("messages");
+const nameInput = document.getElementById('usernameInput');
+const msgInput = document.getElementById('messageInput');
+
+// Different types of operations
+const Operations = Object.freeze({
+  "message": 0,
+  "clients": 1
+});
+
+// Create websocket connection
+const webSocket = new WebSocket("wss://192.168.0.11:8000/");
+
+/**
  * Add a message to messages element locally
  * @param {*} msg Message to add
  */
 function notice(msg) {
-  document.getElementById("messages").innerHTML += `
+  messagesContainer.innerHTML += `
     <strong>${msg}</strong> <br>
   `;
 }
-
-/**
- * Create websocket connection
- */
-var webSocket = new WebSocket("wss://192.168.0.11:8000/");
-
-const Operations = Object.freeze({
-  "message": 0,
-  "clients": 1
-})
 
 /**
  * Notify user if websocket connection is opened
@@ -28,12 +36,10 @@ webSocket.addEventListener('open', () => {
 });
 
 /**
- * Notify user if websocket connection couldn't open
+ * Notify user if websocket connection is closed/fails to open
  */
-webSocket.addEventListener('error', () => {
-  if (WebSocket.CLOSED) {
-    notice("Couldn't connect to server");
-  }
+webSocket.addEventListener('close', (e) => {
+  notice("Couldn't reach server");
 });
 
 /**
@@ -44,7 +50,7 @@ webSocket.addEventListener('message', (e) => {
 
   switch (msg.op) {
     case Operations.message:
-      document.getElementById("messages").innerHTML += `
+      messagesContainer.innerHTML += `
         <strong>${msg.message.username}:</strong> ${msg.message.body} <br>
       `;
       break;
@@ -61,11 +67,22 @@ webSocket.addEventListener('message', (e) => {
 document.getElementById("messageForm").addEventListener("submit", (e) => {
   e.preventDefault();
 
-  webSocket.send(JSON.stringify({
-    op: Operations.message,
-    message: {
-      username: document.getElementById('usernameInput').value,
-      body: document.getElementById('messageInput').value
-    }
-  }));
+  // Only go to send message if inputs aren't empty and webSocket is open
+  if (
+    nameInput.value != "" && 
+    msgInput.value != "" && 
+    webSocket.readyState == webSocket.OPEN
+  ) {
+    // Send message to server
+    webSocket.send(JSON.stringify({
+      op: Operations.message,
+      message: {
+        username: nameInput.value,
+        body: msgInput.value
+      }
+    }));
+
+    // Empty msgInput after sending message
+    msgInput.value = "";
+  }
 });
