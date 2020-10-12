@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Different operation types
 const (
 	MessageOperation = 0
 	ClientsOperation = 1
@@ -35,6 +36,7 @@ var clients = make(map[*websocket.Conn]bool) // Connected clients
 var broadcast = make(chan Operation)         // Broadcast channel
 var upgrader = websocket.Upgrader{}          // Connection upgrader
 
+// Initialize the HTTPS server
 func startMessagesWebSocket() {
 	// Configure websocket route
 	http.HandleFunc("/", handleConnections)
@@ -50,6 +52,9 @@ func startMessagesWebSocket() {
 	}
 }
 
+// Handle new connections
+// Requests are upgraded to a websocket connection,
+// clients are registered and then kept in a loop listening for messages
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// Allow every origin
 	upgrader.CheckOrigin = func(r *http.Request) bool {
@@ -87,9 +92,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Listen for messages put in the broadcast channel and send them to all clients
 func handleMessages() {
 	for {
-		// Grab the next message from the broadcast channel
+		// Get the message from the broadcast channel
 		msg := <-broadcast
 
 		// Send it out to every client that is currently connected
@@ -104,13 +110,16 @@ func handleMessages() {
 	}
 }
 
-func manageClient(add bool, ws *websocket.Conn) {
-	if add {
+// Register or remove a client then broadcast the change
+func manageClient(shouldAdd bool, ws *websocket.Conn) {
+	// Add or remove a client
+	if shouldAdd {
 		clients[ws] = true
 	} else {
 		delete(clients, ws)
 	}
 
+	// Broadcast new client count
 	broadcast <- Operation{
 		Operation: ClientsOperation,
 		Clients: &Clients{
