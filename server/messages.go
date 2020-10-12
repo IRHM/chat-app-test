@@ -11,13 +11,19 @@ import (
 type Operation struct {
 	Operation int `json:"op"`
 
-	Message `json:"message"`
+	Message *Message `json:"message,omitempty"`
+	Clients *Clients `json:"clients,omitempty"`
 }
 
-// Message struct
+// Message - Text message
 type Message struct {
 	Username string `json:"username"`
 	Body     string `json:"body"`
+}
+
+// Clients - Information on all clients
+type Clients struct {
+	Amount int `json:"amount"`
 }
 
 var clients = make(map[*websocket.Conn]bool) // Connected clients
@@ -54,7 +60,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer ws.Close()
 
 	// Register new client
-	clients[ws] = true
+	manageClient(true, ws)
 
 	for {
 		var req Operation
@@ -63,10 +69,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		err := ws.ReadJSON(&req)
 		if err != nil {
 			log.Printf("notice: %v", err)
-			delete(clients, ws)
+			manageClient(false, ws)
 			break
 		}
 
+		// Handle different types of requests from client
 		switch req.Operation {
 		case 0:
 			// Send message to broadcast channel
@@ -86,8 +93,23 @@ func handleMessages() {
 			if err != nil {
 				log.Printf("error: %v", err)
 				client.Close()
-				delete(clients, client)
+				manageClient(false, client)
 			}
 		}
+	}
+}
+
+func manageClient(add bool, ws *websocket.Conn) {
+	if add {
+		clients[ws] = true
+	} else {
+		delete(clients, ws)
+	}
+
+	broadcast <- Operation{
+		Operation: 1,
+		Clients: &Clients{
+			Amount: len(clients),
+		},
 	}
 }

@@ -43,6 +43,10 @@ webSocket.addEventListener('message', (e) => {
         <strong>${msg.message.username}:</strong> ${msg.message.body} <br>
       `;
       break;
+    case 1:
+      document.getElementById("usersOnline").innerHTML = `
+        Users online: ${msg.clients.amount}
+      `;
   }
 });
 
