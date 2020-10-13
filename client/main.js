@@ -86,3 +86,29 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
     msgInput.value = "";
   }
 });
+
+/**
+ * WebRTC part
+ */
+
+var config = {
+  'iceServers': [
+    {
+      'urls': 'turn:192.168.0.10:3478',
+      'username': 'user',
+      'credential': 'pass'
+    }
+  ]
+};
+
+async function openConnection() {
+  var media = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+  var pc = new RTCPeerConnection(config);
+
+  for (const track of media.getTracks()) {
+    pc.addTrack(track);
+  }
+}
+
+openConnection();
