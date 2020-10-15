@@ -9,16 +9,20 @@ import (
 
 // Different operation types
 const (
-	MessageOperation = 0
-	ClientsOperation = 1
+	MessageOperation        = 0
+	ClientsOperation        = 1
+	CandidateOperation      = 100
+	CandidateOfferOperation = 101
 )
 
 // Operation - Type of operation being performed
 type Operation struct {
 	Operation int `json:"op"`
 
-	Message *Message `json:"message,omitempty"`
-	Clients *Clients `json:"clients,omitempty"`
+	Message        *Message        `json:"message,omitempty"`
+	Clients        *Clients        `json:"clients,omitempty"`
+	Candidate      *Candidate      `json:"candidate,omitempty"`
+	CandidateOffer *CandidateOffer `json:"candidateOffer,omitempty"`
 }
 
 // Message - Text message
@@ -30,6 +34,17 @@ type Message struct {
 // Clients - Information on all clients
 type Clients struct {
 	Amount int `json:"amount"`
+}
+
+// Candidate -
+type Candidate struct {
+	Username  string `json:"username"`
+	Candidate string `json:"candidate"`
+}
+
+// CandidateOffer -
+type CandidateOffer struct {
+	Username string `json:"username"`
 }
 
 var clients = make(map[*websocket.Conn]bool) // Connected clients
@@ -88,8 +103,21 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		case MessageOperation:
 			// Send message to broadcast channel
 			broadcast <- req
+		case CandidateOperation:
+			log.Println("---------------------")
+			log.Println(req.Candidate.Username)
+			log.Println(req.Candidate.Candidate)
+			log.Println("---------------------")
+		case CandidateOfferOperation:
+			log.Println("---------------------")
+			log.Println(req.CandidateOffer.Username)
+			log.Println("---------------------")
 		}
 	}
+}
+
+func handleCandidateOffer() {
+
 }
 
 // Listen for messages put in the broadcast channel and send them to all clients
