@@ -4,13 +4,17 @@
 
 // Elements
 const messagesContainer = document.getElementById("messages");
-const nameInput = document.getElementById('usernameInput');
-const msgInput = document.getElementById('messageInput');
+const nameInput = document.getElementById("usernameInput");
+const toConnectInput = document.getElementById("toConnectInput");
+const msgInput = document.getElementById("messageInput");
+var myid;
 
 // Different types of operations
 const Operations = Object.freeze({
   "message": 0,
-  "clients": 1
+  "clients": 1,
+  "myid": 50,
+  "candidate": 100
 });
 
 // Create websocket connection
@@ -58,6 +62,10 @@ webSocket.addEventListener('message', (e) => {
       document.getElementById("usersOnline").innerHTML = `
         Users online: ${msg.clients.amount}
       `;
+      break;
+    case Operations.myid:
+      myid = msg.client.id;
+      break;
   }
 });
 
@@ -94,7 +102,10 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
 var config = {
   'iceServers': [
     {
-      'urls': 'turn:192.168.0.10:3478',
+      'urls': 'stun:192.168.0.11:3478'
+    },
+    {
+      'urls': 'turn:192.168.0.11:3478',
       'username': 'user',
       'credential': 'pass'
     }
@@ -109,6 +120,33 @@ async function openConnection() {
   for (const track of media.getTracks()) {
     pc.addTrack(track);
   }
+
+  pc.onicecandidate = (event) => {
+    console.log("Found an ice candidate");
+
+    if (event.candidate) { 
+      webSocket.send(JSON.stringify({
+        op: Operations.candidate,
+        candidate: {
+          username: nameInput.value,
+          candidate: event.candidate
+        }
+      }));
+    }
+  };
+
+  console.log("Connection opened?");
 }
+
+document.getElementById("toConnectForm").addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  webSocket.send(JSON.stringify({
+    op: 101,
+    CandidateOffer: {
+      username: toConnectInput.value
+    }
+  }));
+});
 
 openConnection();
