@@ -23,7 +23,7 @@ type Operation struct {
 	Operation int `json:"op"`
 
 	Message        *Message        `json:"message,omitempty"`
-	Client         Client          `json:"client,omitempty"`
+	Client         *Client         `json:"client,omitempty"`
 	Clients        *Clients        `json:"clients,omitempty"`
 	Candidate      *Candidate      `json:"candidate,omitempty"`
 	CandidateOffer *CandidateOffer `json:"candidateOffer,omitempty"`
@@ -179,7 +179,7 @@ func manageClient(shouldAdd bool, ws *websocket.Conn) {
 		// Send client their ID
 		broadcast <- Operation{
 			Operation: ClientOperation,
-			Client:    cl,
+			Client:    &cl,
 		}
 	} else {
 		delete(clients, ws)
