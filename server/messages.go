@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -57,10 +58,10 @@ type CandidateOffer struct {
 	Username string `json:"username"`
 }
 
-var clients = make(map[*websocket.Conn]Client) // Connected clients
-var broadcast = make(chan Operation)           // Broadcast channel
-var privateBroadcast = make(chan Operation)    // Private broadcast channel
-var upgrader = websocket.Upgrader{}            // Connection upgrader
+var clients = make(map[int]Client)          // Connected clients
+var broadcast = make(chan Operation)        // Broadcast channel
+var privateBroadcast = make(chan Operation) // Private broadcast channel
+var upgrader = websocket.Upgrader{}         // Connection upgrader
 
 // Initialize the HTTPS server
 func startMessagesWebSocket() {
@@ -120,16 +121,20 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			log.Println(req.Candidate.Candidate)
 			log.Println("---------------------")
 		case CandidateOfferOperation:
-			log.Println("---------------------")
-			log.Println(req.CandidateOffer.Username)
-			log.Println("---------------------")
-			handleCandidateOffer()
+			handleCandidateOffer(req.CandidateOffer.Username) // For now username will be users id
 		}
 	}
 }
 
-func handleCandidateOffer() {
+func handleCandidateOffer(u string) {
+	log.Println("---------------------")
+	log.Println(u)
+	log.Println("---------------------")
 
+	c, _ := strconv.ParseInt(u, 10, 64)
+	if _, ok := clients[int(c)]; ok {
+		log.Println("Found client asked for..")
+	}
 }
 
 // Listen for messages put in the broadcast channel and send them to all clients
@@ -139,7 +144,7 @@ func handleMessages() {
 		msg := <-broadcast
 
 		if msg.Operation == ClientOperation {
-			if _, ok := clients[msg.Client.WSID]; ok {
+			if _, ok := clients[msg.Client.ID]; ok {
 				err := msg.Client.WSID.WriteJSON(msg)
 				if err != nil {
 					log.Printf("error: %v", err)
@@ -150,11 +155,13 @@ func handleMessages() {
 		} else {
 			// Send it out to every client that is currently connected
 			for client := range clients {
-				err := client.WriteJSON(msg)
+				c := clients[client].WSID
+
+				err := c.WriteJSON(msg)
 				if err != nil {
 					log.Printf("error: %v", err)
-					client.Close()
-					manageClient(false, client)
+					c.Close()
+					manageClient(false, c)
 				}
 			}
 		}
@@ -164,17 +171,16 @@ func handleMessages() {
 // Register or remove a client then broadcast the change
 func manageClient(shouldAdd bool, ws *websocket.Conn) {
 	rand.Seed(time.Now().UnixNano())
+	id := rand.Int()
+	cl := Client{
+		ID:   id,
+		WSID: ws,
+	}
 
 	// Add or remove a client
 	if shouldAdd {
-		id := rand.Int()
-		cl := Client{
-			ID:   id,
-			WSID: ws,
-		}
-
 		// Register client to our map
-		clients[ws] = cl
+		clients[id] = cl
 
 		// Send client their ID
 		broadcast <- Operation{
@@ -182,7 +188,7 @@ func manageClient(shouldAdd bool, ws *websocket.Conn) {
 			Client:    &cl,
 		}
 	} else {
-		delete(clients, ws)
+		delete(clients, id)
 	}
 
 	// Broadcast new client count
