@@ -14,7 +14,9 @@ const Operations = Object.freeze({
   "message": 0,
   "clients": 1,
   "myid": 50,
-  "candidate": 100
+  "candidate": 100,
+  "CandidateOffer": 101,
+  "CandidateResponse": 102
 });
 
 // Create websocket connection
@@ -65,6 +67,18 @@ webSocket.addEventListener('message', (e) => {
       break;
     case Operations.myid:
       myid = msg.client.id;
+      document.getElementById("usernameLabel").innerText = `Username (your id: ${myid}):`;
+      break;
+    case Operations.CandidateOffer:
+      console.log(msg.candidateOffer.username);
+
+      // For now just answer true instead of asking the user
+      webSocket.send(JSON.stringify({
+        op: Operations.CandidateResponse,
+        candidateResponse: {
+          Answer: true
+        }
+      }));
       break;
   }
 });
@@ -142,9 +156,10 @@ document.getElementById("toConnectForm").addEventListener('submit', (e) => {
   e.preventDefault();
 
   webSocket.send(JSON.stringify({
-    op: 101,
+    op: Operations.CandidateOffer,
     CandidateOffer: {
-      username: toConnectInput.value
+      to: toConnectInput.value,
+      by: myid.toString()
     }
   }));
 });

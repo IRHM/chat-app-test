@@ -12,22 +12,24 @@ import (
 
 // Different operation types
 const (
-	MessageOperation        = 0
-	ClientsOperation        = 1
-	ClientOperation         = 50
-	CandidateOperation      = 100
-	CandidateOfferOperation = 101
+	MessageOperation           = 0
+	ClientsOperation           = 1
+	ClientOperation            = 50
+	CandidateOperation         = 100
+	CandidateOfferOperation    = 101
+	CandidateResponseOperation = 102
 )
 
 // Operation - Type of operation being performed
 type Operation struct {
 	Operation int `json:"op"`
 
-	Message        *Message        `json:"message,omitempty"`
-	Client         *Client         `json:"client,omitempty"`
-	Clients        *Clients        `json:"clients,omitempty"`
-	Candidate      *Candidate      `json:"candidate,omitempty"`
-	CandidateOffer *CandidateOffer `json:"candidateOffer,omitempty"`
+	Message           *Message           `json:"message,omitempty"`
+	Client            *Client            `json:"client,omitempty"`
+	Clients           *Clients           `json:"clients,omitempty"`
+	Candidate         *Candidate         `json:"candidate,omitempty"`
+	CandidateOffer    *CandidateOffer    `json:"candidateOffer,omitempty"`
+	CandidateResponse *CandidateResponse `json:"candidateResponse,omitempty"`
 }
 
 // Message - Text message
@@ -38,7 +40,7 @@ type Message struct {
 
 // Client - Information about current client
 type Client struct {
-	ID   int             `json:"id"`
+	ID   string          `json:"id"`
 	WSID *websocket.Conn `json:"-"`
 }
 
@@ -55,10 +57,17 @@ type Candidate struct {
 
 // CandidateOffer -
 type CandidateOffer struct {
-	Username string `json:"username"`
+	To string `json:"to"`
+	By string `json:"by"`
 }
 
-var clients = make(map[int]Client)          // Connected clients
+// CandidateResponse - Response from user offered a call
+type CandidateResponse struct {
+	InitiatedBy string `json:"initiatedBy"`
+	Answer      bool   `json:"answer"`
+}
+
+var clients = make(map[string]Client)       // Connected clients
 var broadcast = make(chan Operation)        // Broadcast channel
 var privateBroadcast = make(chan Operation) // Private broadcast channel
 var upgrader = websocket.Upgrader{}         // Connection upgrader
@@ -121,19 +130,27 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			log.Println(req.Candidate.Candidate)
 			log.Println("---------------------")
 		case CandidateOfferOperation:
-			handleCandidateOffer(req.CandidateOffer.Username) // For now username will be users id
+			handleCandidateOffer(req.CandidateOffer.To, req.CandidateOffer.By) // For now username will be users id
+		case CandidateResponseOperation:
+			log.Println("response")
 		}
 	}
 }
 
-func handleCandidateOffer(u string) {
-	log.Println("---------------------")
-	log.Println(u)
-	log.Println("---------------------")
-
-	c, _ := strconv.ParseInt(u, 10, 64)
-	if _, ok := clients[int(c)]; ok {
-		log.Println("Found client asked for..")
+func handleCandidateOffer(uto string, uby string) {
+	if _, ok := clients[uto]; ok {
+		err := clients[uto].WSID.WriteJSON(Operation{
+			Operation: CandidateOfferOperation,
+			CandidateOffer: &CandidateOffer{
+				To: uto,
+				By: uby,
+			},
+		})
+		if err != nil {
+			log.Printf("error: %v", err)
+			clients[uto].WSID.Close()
+			manageClient(false, clients[uto].WSID)
+		}
 	}
 }
 
@@ -171,7 +188,7 @@ func handleMessages() {
 // Register or remove a client then broadcast the change
 func manageClient(shouldAdd bool, ws *websocket.Conn) {
 	rand.Seed(time.Now().UnixNano())
-	id := rand.Int()
+	id := strconv.Itoa(rand.Int())
 	cl := Client{
 		ID:   id,
 		WSID: ws,
@@ -180,7 +197,7 @@ func manageClient(shouldAdd bool, ws *websocket.Conn) {
 	// Add or remove a client
 	if shouldAdd {
 		// Register client to our map
-		clients[id] = cl
+		clients[cl.ID] = cl
 
 		// Send client their ID
 		broadcast <- Operation{
@@ -188,7 +205,7 @@ func manageClient(shouldAdd bool, ws *websocket.Conn) {
 			Client:    &cl,
 		}
 	} else {
-		delete(clients, id)
+		delete(clients, cl.ID)
 	}
 
 	// Broadcast new client count
