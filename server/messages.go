@@ -105,8 +105,16 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// Close the connection when the function returns
 	defer ws.Close()
 
+	// Make client
+	rand.Seed(time.Now().UnixNano())
+	id := strconv.Itoa(rand.Int())
+	c := Client{
+		ID:   id,
+		WSID: ws,
+	}
+
 	// Register new client
-	manageClient(true, ws)
+	manageClient(true, c)
 
 	for {
 		var req Operation
@@ -115,7 +123,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		err := ws.ReadJSON(&req)
 		if err != nil {
 			log.Printf("notice: %v", err)
-			manageClient(false, ws)
+			manageClient(false, c)
 			break
 		}
 
@@ -149,7 +157,7 @@ func handleCandidateOffer(uto string, uby string) {
 		if err != nil {
 			log.Printf("error: %v", err)
 			clients[uto].WSID.Close()
-			manageClient(false, clients[uto].WSID)
+			manageClient(false, clients[uto])
 		}
 	}
 }
@@ -166,18 +174,18 @@ func handleMessages() {
 				if err != nil {
 					log.Printf("error: %v", err)
 					msg.Client.WSID.Close()
-					manageClient(false, msg.Client.WSID)
+					manageClient(false, *msg.Client)
 				}
 			}
 		} else {
 			// Send it out to every client that is currently connected
 			for client := range clients {
-				c := clients[client].WSID
+				c := clients[client]
 
-				err := c.WriteJSON(msg)
+				err := c.WSID.WriteJSON(msg)
 				if err != nil {
 					log.Printf("error: %v", err)
-					c.Close()
+					c.WSID.Close()
 					manageClient(false, c)
 				}
 			}
@@ -186,26 +194,19 @@ func handleMessages() {
 }
 
 // Register or remove a client then broadcast the change
-func manageClient(shouldAdd bool, ws *websocket.Conn) {
-	rand.Seed(time.Now().UnixNano())
-	id := strconv.Itoa(rand.Int())
-	cl := Client{
-		ID:   id,
-		WSID: ws,
-	}
-
+func manageClient(shouldAdd bool, c Client) {
 	// Add or remove a client
 	if shouldAdd {
 		// Register client to our map
-		clients[cl.ID] = cl
+		clients[c.ID] = c
 
 		// Send client their ID
 		broadcast <- Operation{
 			Operation: ClientOperation,
-			Client:    &cl,
+			Client:    &c,
 		}
 	} else {
-		delete(clients, cl.ID)
+		delete(clients, c.ID)
 	}
 
 	// Broadcast new client count
@@ -216,5 +217,6 @@ func manageClient(shouldAdd bool, ws *websocket.Conn) {
 		},
 	}
 
+	// TEMP - Log when clients (dis)connect
 	log.Printf("Clients: %v", clients)
 }
