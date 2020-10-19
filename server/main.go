@@ -1,5 +1,7 @@
 package main
 
 func main() {
-	startMessagesWebSocket()
+	go startMessagesWebSocket()
+
+	startTurnServer()
 }

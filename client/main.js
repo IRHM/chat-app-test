@@ -1,20 +1,200 @@
-"use strict";
+/**
+ * Global Vars
+ */
 
+// Elements
+const messagesContainer = document.getElementById("messages");
+const nameInput = document.getElementById("usernameInput");
+const toConnectInput = document.getElementById("toConnectInput");
+const msgInput = document.getElementById("messageInput");
+var myid;
+
+// Different types of operations
+const Operations = Object.freeze({
+  "message": 0,
+  "clients": 1,
+  "myid": 50,
+  "candidate": 100,
+  "CandidateOffer": 101,
+  "CandidateResponse": 102
+});
+
+// Create websocket connection
 const webSocket = new WebSocket("wss://192.168.0.11:8000/");
 
+/**
+ * Add a message to messages element locally
+ * @param {*} msg Message to add
+ */
+function notice(msg) {
+  messagesContainer.innerHTML += `
+    <strong>${msg}</strong> <br>
+  `;
+}
+
+/**
+ * Notify user if websocket connection is opened
+ */
+webSocket.addEventListener('open', () => {
+  if (WebSocket.OPEN) {  
+    notice("Connected");
+  }
+});
+
+/**
+ * Notify user if websocket connection is closed/fails to open
+ */
+webSocket.addEventListener('close', (e) => {
+  notice("Couldn't reach server");
+});
+
+/**
+ * Display message to user once they recieve it
+ */
+webSocket.addEventListener('message', (e) => {
+  var msg = JSON.parse(e.data);
+
+  switch (msg.op) {
+    case Operations.message:
+      messagesContainer.innerHTML += `
+        <strong>${msg.message.username}:</strong> ${msg.message.body} <br>
+      `;
+      break;
+    case Operations.clients:
+      document.getElementById("usersOnline").innerHTML = `
+        Users online: ${msg.clients.amount}
+      `;
+      break;
+    case Operations.myid:
+      myid = msg.client.id;
+      document.getElementById("usernameLabel").innerText = `Username (your id: ${myid}):`;
+      break;
+    case Operations.Candidate:
+      handleCandidate(msg.candidate.candidate)
+      break;
+    case Operations.CandidateOffer:
+      handleCandidateOffer(msg.candidateOffer);
+      break;
+    case Operations.CandidateResponse:
+      handleCandidateResponse(msg.candidateResponse)
+      break;
+  }
+});
+
+/**
+ * Catch when user tries to submit message form, and send input data to server
+ */
 document.getElementById("messageForm").addEventListener("submit", (e) => {
   e.preventDefault();
 
-  webSocket.send(JSON.stringify({
-    username: document.getElementById('usernameInput').value,
-    message: document.getElementById('messageInput').value
-  }));
+  // Only go to send message if inputs aren't empty and webSocket is open
+  if (
+    nameInput.value != "" && 
+    msgInput.value != "" && 
+    webSocket.readyState == webSocket.OPEN
+  ) {
+    // Send message to server
+    webSocket.send(JSON.stringify({
+      op: Operations.message,
+      message: {
+        username: nameInput.value,
+        body: msgInput.value
+      }
+    }));
+
+    // Empty msgInput after sending message
+    msgInput.value = "";
+  }
 });
 
-webSocket.addEventListener('message', function(e) {
-  var msg = JSON.parse(e.data);
-  let msgEl = document.getElementById("messages");
+/**
+ * WebRTC part
+ */
 
-  msgEl.insertAdjacentHTML('beforeend', `<div id="message"><strong>${msg.username}:</strong> ${msg.message} </div><br>`);
-  msgEl.scrollTop = msgEl.scrollHeight;
+var config = {
+  'iceServers': [
+    {
+      'urls': 'stun:192.168.0.11:3478',
+      'username': 'user',
+      'credential': 'pass'
+    },
+    {
+      'urls': 'turn:192.168.0.11:3478',
+      'username': 'user',
+      'credential': 'pass'
+    }
+  ]
+};
+
+// Create new peer connection
+var peerconn = new RTCPeerConnection(config);
+
+// Get audio device and add to connection
+var media = navigator.mediaDevices.getUserMedia({ audio: true }).then((m) => {
+  for (const track of m.getTracks()) {
+    peerconn.addTrack(track);
+  }
+})
+
+peerconn.onicecandidate = (event) => {
+  console.log("Found an ice candidate");
+
+  if (event.candidate) {
+    webSocket.send(JSON.stringify({
+      op: Operations.candidate,
+      candidate: {
+        to: nameInput.value,
+        candidate: event.candidate
+      }
+    }));
+  }
+};
+
+function handleCandidateOffer(offer) {
+  console.log(offer);
+  peerconn.setRemoteDescription(new RTCSessionDescription(offer.offer))
+
+  peerconn.createAnswer().then((answer) => {
+    peerconn.setLocalDescription(answer);
+
+    // Send response
+    webSocket.send(JSON.stringify({
+      op: Operations.CandidateResponse,
+      candidateResponse: {
+        Answer: true, // For now just answer true instead of asking the user
+        Offer: answer,
+        OfferedBy: offer.by
+      }
+    }));
+  });
+}
+
+function handleCandidateResponse(resp) {
+  // if (resp.answer) {
+    peerconn.setRemoteDescription(new RTCSessionDescription(resp.offer))
+  // }
+}
+
+function handleCandidate(candidate) {
+  peerconn.addIceCandidate(new RTCIceCandidate(candidate));
+}
+
+document.getElementById("toConnectForm").addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  peerconn.createOffer().then((offer) => {
+    console.log(offer);
+
+    // Send offer to other client
+    webSocket.send(JSON.stringify({
+      op: Operations.CandidateOffer,
+      CandidateOffer: {
+        to: toConnectInput.value,
+        by: myid.toString(),
+        offer: offer
+      }
+    }));
+
+    peerconn.setLocalDescription(offer);
+  });
 });
