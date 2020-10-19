@@ -70,21 +70,24 @@ webSocket.addEventListener('message', (e) => {
       document.getElementById("usernameLabel").innerText = `Username (your id: ${myid}):`;
       break;
     case Operations.CandidateOffer:
-      console.log(msg.candidateOffer.username);
-
-      // For now just answer true instead of asking the user
-      webSocket.send(JSON.stringify({
-        op: Operations.CandidateResponse,
-        candidateResponse: {
-          Answer: true
-        }
-      }));
+      handleCandidateOffer(msg.candidateOffer);
       break;
   }
 });
 
+function handleCandidateOffer(offer) {
+  // For now just answer true instead of asking the user
+  webSocket.send(JSON.stringify({
+    op: Operations.CandidateResponse,
+    candidateResponse: {
+      Answer: true,
+      OfferedBy: offer.by
+    }
+  }));
+}
+
 /**
- * Catch when user tries to submit form, then use input data to send a message to server
+ * Catch when user tries to submit message form, and send input data to server
  */
 document.getElementById("messageForm").addEventListener("submit", (e) => {
   e.preventDefault();

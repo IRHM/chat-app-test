@@ -63,8 +63,8 @@ type CandidateOffer struct {
 
 // CandidateResponse - Response from user offered a call
 type CandidateResponse struct {
-	InitiatedBy string `json:"initiatedBy"`
-	Answer      bool   `json:"answer"`
+	Answer    bool   `json:"answer"`
+	OfferedBy string `json:"OfferedBy"`
 }
 
 var clients = make(map[string]Client)       // Connected clients
@@ -140,7 +140,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		case CandidateOfferOperation:
 			handleCandidateOffer(req.CandidateOffer.To, req.CandidateOffer.By) // For now username will be users id
 		case CandidateResponseOperation:
-			log.Println("response")
+			// Redirect response to correct client
+			clients[req.CandidateResponse.OfferedBy].WSID.WriteJSON(Operation{
+				Operation:         CandidateResponseOperation,
+				CandidateResponse: req.CandidateResponse,
+			})
 		}
 	}
 }
