@@ -51,20 +51,36 @@ type Clients struct {
 
 // Candidate -
 type Candidate struct {
-	Username  string `json:"username"`
-	Candidate string `json:"candidate"`
+	To           string        `json:"to"`
+	ICECandidate *ICECandidate `json:"candidate"`
 }
 
 // CandidateOffer -
 type CandidateOffer struct {
-	To string `json:"to"`
-	By string `json:"by"`
+	To       string    `json:"to"`
+	By       string    `json:"by"`
+	RTCOffer *RTCOffer `json:"offer"`
 }
 
 // CandidateResponse - Response from user offered a call
 type CandidateResponse struct {
-	Answer    bool   `json:"answer"`
-	OfferedBy string `json:"OfferedBy"`
+	Answer    bool      `json:"answer"`
+	RTCOffer  *RTCOffer `json:"offer"`
+	OfferedBy string    `json:"offeredBy"`
+}
+
+// RTCOffer - Offers created by RTCPeerConnection.createOffer()
+type RTCOffer struct {
+	Type string `json:"type"`
+	SDP  string `json:"sdp"`
+}
+
+// ICECandidate - Candidate sent by client
+type ICECandidate struct {
+	Candidate        string `json:"candidate"`
+	SDPMid           string `json:"sdpMid"`
+	SDPMLineIndex    int    `json:"sdpMLineIndex"`
+	UsernameFragment string `json:"usernameFragment"`
 }
 
 var clients = make(map[string]Client)       // Connected clients
@@ -133,12 +149,16 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			// Send message to broadcast channel
 			broadcast <- req
 		case CandidateOperation:
-			log.Println("---------------------")
-			log.Println(req.Candidate.Username)
-			log.Println(req.Candidate.Candidate)
-			log.Println("---------------------")
+
 		case CandidateOfferOperation:
-			handleCandidateOffer(req.CandidateOffer.To, req.CandidateOffer.By) // For now username will be users id
+			handlePrivateMessages(req.CandidateOffer.To, Operation{
+				Operation: CandidateOfferOperation,
+				CandidateOffer: &CandidateOffer{
+					To:       req.CandidateOffer.To,
+					By:       req.CandidateOffer.By,
+					RTCOffer: req.CandidateOffer.RTCOffer,
+				},
+			})
 		case CandidateResponseOperation:
 			// Redirect response to correct client
 			clients[req.CandidateResponse.OfferedBy].WSID.WriteJSON(Operation{
@@ -149,15 +169,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleCandidateOffer(uto string, uby string) {
+func handlePrivateMessages(uto string, op Operation) {
 	if _, ok := clients[uto]; ok {
-		err := clients[uto].WSID.WriteJSON(Operation{
-			Operation: CandidateOfferOperation,
-			CandidateOffer: &CandidateOffer{
-				To: uto,
-				By: uby,
-			},
-		})
+		err := clients[uto].WSID.WriteJSON(op)
 		if err != nil {
 			log.Printf("error: %v", err)
 			clients[uto].WSID.Close()

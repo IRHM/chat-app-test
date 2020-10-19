@@ -69,22 +69,17 @@ webSocket.addEventListener('message', (e) => {
       myid = msg.client.id;
       document.getElementById("usernameLabel").innerText = `Username (your id: ${myid}):`;
       break;
+    case Operations.Candidate:
+      handleCandidate(msg.candidate.candidate)
+      break;
     case Operations.CandidateOffer:
       handleCandidateOffer(msg.candidateOffer);
       break;
+    case Operations.CandidateResponse:
+      handleCandidateResponse(msg.candidateResponse)
+      break;
   }
 });
-
-function handleCandidateOffer(offer) {
-  // For now just answer true instead of asking the user
-  webSocket.send(JSON.stringify({
-    op: Operations.CandidateResponse,
-    candidateResponse: {
-      Answer: true,
-      OfferedBy: offer.by
-    }
-  }));
-}
 
 /**
  * Catch when user tries to submit message form, and send input data to server
@@ -119,7 +114,9 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
 var config = {
   'iceServers': [
     {
-      'urls': 'stun:192.168.0.11:3478'
+      'urls': 'stun:192.168.0.11:3478',
+      'username': 'user',
+      'credential': 'pass'
     },
     {
       'urls': 'turn:192.168.0.11:3478',
@@ -129,42 +126,75 @@ var config = {
   ]
 };
 
-async function openConnection() {
-  var media = await navigator.mediaDevices.getUserMedia({ audio: true });
+// Create new peer connection
+var peerconn = new RTCPeerConnection(config);
 
-  var pc = new RTCPeerConnection(config);
-
-  for (const track of media.getTracks()) {
-    pc.addTrack(track);
+// Get audio device and add to connection
+var media = navigator.mediaDevices.getUserMedia({ audio: true }).then((m) => {
+  for (const track of m.getTracks()) {
+    peerconn.addTrack(track);
   }
+})
 
-  pc.onicecandidate = (event) => {
-    console.log("Found an ice candidate");
+peerconn.onicecandidate = (event) => {
+  console.log("Found an ice candidate");
 
-    if (event.candidate) { 
-      webSocket.send(JSON.stringify({
-        op: Operations.candidate,
-        candidate: {
-          username: nameInput.value,
-          candidate: event.candidate
-        }
-      }));
-    }
-  };
+  if (event.candidate) {
+    webSocket.send(JSON.stringify({
+      op: Operations.candidate,
+      candidate: {
+        to: nameInput.value,
+        candidate: event.candidate
+      }
+    }));
+  }
+};
 
-  console.log("Connection opened?");
+function handleCandidateOffer(offer) {
+  console.log(offer);
+  peerconn.setRemoteDescription(new RTCSessionDescription(offer.offer))
+
+  peerconn.createAnswer().then((answer) => {
+    peerconn.setLocalDescription(answer);
+
+    // Send response
+    webSocket.send(JSON.stringify({
+      op: Operations.CandidateResponse,
+      candidateResponse: {
+        Answer: true, // For now just answer true instead of asking the user
+        Offer: answer,
+        OfferedBy: offer.by
+      }
+    }));
+  });
+}
+
+function handleCandidateResponse(resp) {
+  // if (resp.answer) {
+    peerconn.setRemoteDescription(new RTCSessionDescription(resp.offer))
+  // }
+}
+
+function handleCandidate(candidate) {
+  peerconn.addIceCandidate(new RTCIceCandidate(candidate));
 }
 
 document.getElementById("toConnectForm").addEventListener('submit', (e) => {
   e.preventDefault();
 
-  webSocket.send(JSON.stringify({
-    op: Operations.CandidateOffer,
-    CandidateOffer: {
-      to: toConnectInput.value,
-      by: myid.toString()
-    }
-  }));
-});
+  peerconn.createOffer().then((offer) => {
+    console.log(offer);
 
-openConnection();
+    // Send offer to other client
+    webSocket.send(JSON.stringify({
+      op: Operations.CandidateOffer,
+      CandidateOffer: {
+        to: toConnectInput.value,
+        by: myid.toString(),
+        offer: offer
+      }
+    }));
+
+    peerconn.setLocalDescription(offer);
+  });
+});
