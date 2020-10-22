@@ -15,8 +15,8 @@ const Operations = Object.freeze({
   "clients": 1,
   "myid": 50,
   "candidate": 100,
-  "CandidateOffer": 101,
-  "CandidateResponse": 102
+  "candidateOffer": 101,
+  "candidateResponse": 102
 });
 
 // Create websocket connection
@@ -69,14 +69,14 @@ webSocket.addEventListener('message', (e) => {
       myid = msg.client.id;
       document.getElementById("usernameLabel").innerText = `Username (your id: ${myid}):`;
       break;
-    case Operations.Candidate:
-      handleCandidate(msg.candidate.candidate)
+    case Operations.candidate:
+      handleCandidate(msg.candidate.candidate);
       break;
-    case Operations.CandidateOffer:
+    case Operations.candidateOffer:
       handleCandidateOffer(msg.candidateOffer);
       break;
-    case Operations.CandidateResponse:
-      handleCandidateResponse(msg.candidateResponse)
+    case Operations.candidateResponse:
+      handleCandidateResponse(msg.candidateResponse);
       break;
   }
 });
@@ -143,15 +143,19 @@ peerconn.onicecandidate = (event) => {
     webSocket.send(JSON.stringify({
       op: Operations.candidate,
       candidate: {
-        to: nameInput.value,
+        to: toConnectInput.value,
         candidate: event.candidate
       }
     }));
   }
+  else {
+    console.log("All ice candidates sent");
+  }
 };
 
 function handleCandidateOffer(offer) {
-  console.log(offer);
+  console.log("Handling candidate offer");
+  console.log(offer)
   peerconn.setRemoteDescription(new RTCSessionDescription(offer.offer))
 
   peerconn.createAnswer().then((answer) => {
@@ -170,12 +174,17 @@ function handleCandidateOffer(offer) {
 }
 
 function handleCandidateResponse(resp) {
+  console.log("Handling candidates response");
+
   // if (resp.answer) {
-    peerconn.setRemoteDescription(new RTCSessionDescription(resp.offer))
+    peerconn.setRemoteDescription(new RTCSessionDescription(resp.offer));
   // }
 }
 
 function handleCandidate(candidate) {
+  console.log("Adding ice candidate");
+  console.log(candidate);
+
   peerconn.addIceCandidate(new RTCIceCandidate(candidate));
 }
 

@@ -149,7 +149,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			// Send message to broadcast channel
 			broadcast <- req
 		case CandidateOperation:
-
+			handlePrivateMessages(req.Candidate.To, Operation{
+				Operation: CandidateOperation,
+				Candidate: &Candidate{
+					To:           req.Candidate.To,
+					ICECandidate: req.Candidate.ICECandidate,
+				},
+			})
 		case CandidateOfferOperation:
 			handlePrivateMessages(req.CandidateOffer.To, Operation{
 				Operation: CandidateOfferOperation,
