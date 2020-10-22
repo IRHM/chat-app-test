@@ -12,8 +12,8 @@ import (
 
 // Different operation types
 const (
-	MessageOperation           = 0
-	ClientsOperation           = 1
+	MessageOperation           = 1
+	ClientsOperation           = 2
 	ClientOperation            = 50
 	CandidateOperation         = 100
 	CandidateOfferOperation    = 101

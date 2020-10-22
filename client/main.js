@@ -11,8 +11,8 @@ var myid;
 
 // Different types of operations
 const Operations = Object.freeze({
-  "message": 0,
-  "clients": 1,
+  "message": 1,
+  "clients": 2,
   "myid": 50,
   "candidate": 100,
   "candidateOffer": 101,
