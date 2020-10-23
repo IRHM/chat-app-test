@@ -165,7 +165,7 @@ function handleCandidateOffer(offer) {
     webSocket.send(JSON.stringify({
       op: Operations.CandidateResponse,
       candidateResponse: {
-        Answer: true, // For now just answer true instead of asking the user
+        Answer: true, // For now, just answer true instead of asking the user
         Offer: answer,
         OfferedBy: offer.by
       }

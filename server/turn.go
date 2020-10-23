@@ -15,12 +15,8 @@ import (
 const (
 	publicIP = "192.168.0.11"
 	port     = 3478
-	realm    = "test.local"
+	realm    = "chat.app"
 )
-
-type stunLogger struct {
-	net.PacketConn
-}
 
 // Initialize turn server
 func startTurnServer() {
