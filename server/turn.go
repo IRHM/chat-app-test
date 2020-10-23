@@ -8,14 +8,19 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/pion/logging"
 	"github.com/pion/turn"
 )
 
 const (
 	publicIP = "192.168.0.11"
 	port     = 3478
-	realm    = "chat.app"
+	realm    = "test.local"
 )
+
+type stunLogger struct {
+	net.PacketConn
+}
 
 // Initialize turn server
 func startTurnServer() {
@@ -47,13 +52,14 @@ func startTurnServer() {
 		// PacketConnConfigs is a list of UDP Listeners and the configuration around them
 		PacketConnConfigs: []turn.PacketConnConfig{
 			{
-				PacketConn: udpListener,
+				PacketConn: &stunLogger{udpListener},
 				RelayAddressGenerator: &turn.RelayAddressGeneratorStatic{
 					RelayAddress: net.ParseIP(publicIP), // Claim that we are listening on IP passed by user (This should be your Public IP)
 					Address:      "0.0.0.0",             // But actually be listening on every interface
 				},
 			},
 		},
+		LoggerFactory: logging.NewDefaultLoggerFactory(),
 	})
 	if err != nil {
 		log.Panic(err)
