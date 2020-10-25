@@ -54,6 +54,8 @@ webSocket.addEventListener('close', (e) => {
 webSocket.addEventListener('message', (e) => {
   var msg = JSON.parse(e.data);
 
+  console.log(msg.op);
+
   switch (msg.op) {
     case Operations.message:
       messagesContainer.innerHTML += `
@@ -134,7 +136,12 @@ var media = navigator.mediaDevices.getUserMedia({ audio: true }).then((m) => {
   for (const track of m.getTracks()) {
     peerconn.addTrack(track);
   }
-})
+});
+
+peerconn.ontrack = (e) => {
+  console.log(e);
+  // document.getElementById("remoteAudio").src = e.stream; 
+}; 
 
 peerconn.onicecandidate = (event) => {
   console.log("Found an ice candidate");
@@ -155,15 +162,16 @@ peerconn.onicecandidate = (event) => {
 
 function handleCandidateOffer(offer) {
   console.log("Handling candidate offer");
-  console.log(offer)
-  peerconn.setRemoteDescription(new RTCSessionDescription(offer.offer))
+  console.log(offer);
+
+  peerconn.setRemoteDescription(new RTCSessionDescription(offer.offer));
 
   peerconn.createAnswer().then((answer) => {
     peerconn.setLocalDescription(answer);
 
     // Send response
     webSocket.send(JSON.stringify({
-      op: Operations.CandidateResponse,
+      op: Operations.candidateResponse,
       candidateResponse: {
         Answer: true, // For now, just answer true instead of asking the user
         Offer: answer,
@@ -175,6 +183,7 @@ function handleCandidateOffer(offer) {
 
 function handleCandidateResponse(resp) {
   console.log("Handling candidates response");
+  console.log(resp.offer);
 
   // if (resp.answer) {
     peerconn.setRemoteDescription(new RTCSessionDescription(resp.offer));
@@ -194,16 +203,16 @@ document.getElementById("toConnectForm").addEventListener('submit', (e) => {
   peerconn.createOffer().then((offer) => {
     console.log(offer);
 
+    peerconn.setLocalDescription(offer);
+
     // Send offer to other client
     webSocket.send(JSON.stringify({
-      op: Operations.CandidateOffer,
+      op: Operations.candidateOffer,
       CandidateOffer: {
         to: toConnectInput.value,
         by: myid.toString(),
         offer: offer
       }
     }));
-
-    peerconn.setLocalDescription(offer);
   });
 });
