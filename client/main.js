@@ -128,20 +128,26 @@ var config = {
   ]
 };
 
+var mediaConstraints = {
+  audio: true,
+  video: false
+};
+
 // Create new peer connection
 var peerconn = new RTCPeerConnection(config);
 
-// Get audio device and add to connection
-var media = navigator.mediaDevices.getUserMedia({ audio: true }).then((m) => {
-  for (const track of m.getTracks()) {
-    peerconn.addTrack(track);
-  }
+// Get media devices and add them to the connection
+navigator.mediaDevices.getUserMedia(mediaConstraints).then((m) => {
+  // Play back local stream
+  // document.getElementById("outputAudio").srcObject = m;
+
+  m.getTracks().forEach(track => peerconn.addTrack(track, m));
 });
 
 peerconn.ontrack = (e) => {
-  console.log(e);
-  // document.getElementById("remoteAudio").src = e.stream; 
-}; 
+  // Start playing recieved audio stream
+  document.getElementById("recievedAudio").srcObject = e.streams[0];
+};
 
 peerconn.onicecandidate = (event) => {
   console.log("Found an ice candidate");
