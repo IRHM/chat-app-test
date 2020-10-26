@@ -110,9 +110,10 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
 });
 
 /**
- * WebRTC part
+ * WebRTC
  */
 
+// Peer connection config
 var config = {
   'iceServers': [
     {
@@ -128,6 +129,7 @@ var config = {
   ]
 };
 
+// Wanted media
 var mediaConstraints = {
   audio: true,
   video: false
@@ -136,7 +138,9 @@ var mediaConstraints = {
 // Create new peer connection
 var peerconn = new RTCPeerConnection(config);
 
-// Get media devices and add them to the connection
+/**
+ * Get media devices and add them to the connection
+ */
 navigator.mediaDevices.getUserMedia(mediaConstraints).then((m) => {
   // Play back local stream
   // document.getElementById("outputAudio").srcObject = m;
@@ -149,6 +153,10 @@ peerconn.ontrack = (e) => {
   document.getElementById("recievedAudio").srcObject = e.streams[0];
 };
 
+/**
+ * Once a candidate is found send it to the other client
+ * @param {*} event 
+ */
 peerconn.onicecandidate = (event) => {
   console.log("Found an ice candidate");
 
@@ -166,6 +174,10 @@ peerconn.onicecandidate = (event) => {
   }
 };
 
+/**
+ * Handle offer from candidate and create an answer
+ * @param {*} offer 
+ */
 function handleCandidateOffer(offer) {
   console.log("Handling candidate offer");
   console.log(offer);
@@ -187,6 +199,10 @@ function handleCandidateOffer(offer) {
   });
 }
 
+/**
+ * Handle candidates response to offer - setRemoteDescription
+ * @param {*} resp 
+ */
 function handleCandidateResponse(resp) {
   console.log("Handling candidates response");
   console.log(resp.offer);
@@ -196,6 +212,10 @@ function handleCandidateResponse(resp) {
   // }
 }
 
+/**
+ * Add ICE candidate
+ * @param {*} candidate 
+ */
 function handleCandidate(candidate) {
   console.log("Adding ice candidate");
   console.log(candidate);
@@ -203,6 +223,10 @@ function handleCandidate(candidate) {
   peerconn.addIceCandidate(new RTCIceCandidate(candidate));
 }
 
+/**
+ * Handle submit on toConnect form
+ * Create offer and send it to client to connect to
+ */
 document.getElementById("toConnectForm").addEventListener('submit', (e) => {
   e.preventDefault();
 
