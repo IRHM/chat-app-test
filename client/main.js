@@ -7,6 +7,7 @@ const messagesContainer = document.getElementById("messages");
 const nameInput = document.getElementById("usernameInput");
 const toConnectInput = document.getElementById("toConnectInput");
 const msgInput = document.getElementById("messageInput");
+
 var myid;
 
 // Different types of operations
@@ -21,6 +22,14 @@ const Operations = Object.freeze({
 
 // Create websocket connection
 const webSocket = new WebSocket("wss://192.168.0.11:8000/");
+
+/**
+ * Send json message to websocket connection
+ * @param {*} msg Message to send in json 
+ */
+function webSend(msg) {
+  webSocket.send(JSON.stringify(msg));
+}
 
 /**
  * Add a message to messages element locally
@@ -96,13 +105,13 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
     webSocket.readyState == webSocket.OPEN
   ) {
     // Send message to server
-    webSocket.send(JSON.stringify({
+    webSend({
       op: Operations.message,
       message: {
         username: nameInput.value,
         body: msgInput.value
       }
-    }));
+    });
 
     // Empty msgInput after sending message
     msgInput.value = "";
@@ -156,13 +165,13 @@ peerconn.onicecandidate = (event) => {
   console.log("Found an ice candidate");
 
   if (event.candidate) {
-    webSocket.send(JSON.stringify({
+    webSend({
       op: Operations.candidate,
       candidate: {
         to: toConnectInput.value,
         candidate: event.candidate
       }
-    }));
+    });
   }
   else {
     console.log("All ice candidates sent");
@@ -183,14 +192,14 @@ function handleCandidateOffer(offer) {
     peerconn.setLocalDescription(answer);
 
     // Send response
-    webSocket.send(JSON.stringify({
+    webSend({
       op: Operations.candidateResponse,
       candidateResponse: {
         Answer: true, // For now, just answer true instead of asking the user
         Offer: answer,
         OfferedBy: offer.by
       }
-    }));
+    });
   });
 }
 
@@ -231,13 +240,13 @@ document.getElementById("toConnectForm").addEventListener('submit', (e) => {
     peerconn.setLocalDescription(offer);
 
     // Send offer to other client
-    webSocket.send(JSON.stringify({
+    webSend({
       op: Operations.candidateOffer,
       CandidateOffer: {
         to: toConnectInput.value,
         by: myid.toString(),
         offer: offer
       }
-    }));
+    });
   });
 });
