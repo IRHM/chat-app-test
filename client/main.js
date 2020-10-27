@@ -117,11 +117,6 @@ document.getElementById("messageForm").addEventListener("submit", (e) => {
 var config = {
   'iceServers': [
     {
-      'urls': 'stun:192.168.0.11:3478',
-      'username': 'user',
-      'credential': 'pass'
-    },
-    {
       'urls': 'turn:192.168.0.11:3478',
       'username': 'user',
       'credential': 'pass'
